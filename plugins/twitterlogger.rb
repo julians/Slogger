@@ -53,6 +53,11 @@ class TwitterLogger < Slogger
       options = {}
       options['content'] = "#{image['content']}#{tags}"
       options['uuid'] = %x{uuidgen}.gsub(/-/,'').strip
+      # if the image is from one of the user’s own tweets, not a favourite,
+      # add the actual date/time of the tweet
+      if @twitter_config['twitter_users'].include? image['user']
+        options['datestamp'] = image['date']
+      end
       sl = DayOne.new
       path = sl.save_image(image['url'],options['uuid'])
       sl.store_single_photo(path,options) unless path == false
@@ -99,7 +104,7 @@ class TwitterLogger < Slogger
             tweet_images = []
             unless tweet.elements['entities/media'].nil? || tweet.elements['entities/media'].length == 0
               tweet.elements.each("entities/media/creative") { |img|
-                tweet_images << { 'content' => tweet_text, 'date' => tweet_date.utc.iso8601, 'url' => img.elements['media_url'].text }
+                tweet_images << { 'content' => tweet_text, 'date' => tweet_date.utc.iso8601, 'url' => img.elements['media_url'].text, 'user' => tweet.elements['user/screen_name'].text }
               }
             end
 
